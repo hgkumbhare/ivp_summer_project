@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/Hadoop Image Processing Interface/src/examples1/helloWorld/src/main/java/org/hipi/examples/HelloWorld.java"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="1"/>
+</listAttribute>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="examples1.helloWorld.src.main.java.org.hipi.examples.Rgb"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="Hadoop Image Processing Interface"/>
+</launchConfiguration>

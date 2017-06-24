@@ -1,0 +1,100 @@
+package org.hipi.examples;
+
+//Link : http://users.ecs.soton.ac.uk/msn/book/new_demo/fourier/
+
+import java.awt.*;
+import java.awt.image.*;
+import java.net.*;
+import java.io.*;
+import java.lang.Math;
+import java.util.*;
+import java.awt.event.*;
+import javax.imageio.*;
+
+
+
+public class MyFourierAndInverseFourier {
+	
+	Image edgeImage, accImage, outputImage;
+	MediaTracker tracker = null;
+	PixelGrabber grabber = null;
+	//String fileNames[] = {"lena.png", "microphone.png", "screw.png", "drawing.png", "film.png"};
+	static String fileName = "/home/hgkumbhare/Desktop/inputdata1/101200.jpg";
+
+	javax.swing.Timer timer;
+	static final int RADIUS_MIN = 5;
+	static final int RADIUS_MAX = 100;
+	static final int RADIUS_INIT = 100;
+	int radius=RADIUS_INIT;
+
+	int imageNumber=0;
+	static int progress=0;
+	public static int orig[] = null;
+	public float origFloat[] = null;
+	public FFT fft = new FFT();
+	public InverseFFT inverse = new InverseFFT();
+	
+	static Image myImage = null;
+	
+	boolean lowpass = true;
+	 
+	public static void main()
+	{
+		myImage = ImageIO.read(new File(fileName));
+		int width = 0, height = 0;
+		width = myImage.getWidth(null);
+		height = myImage.getHeight(null);
+	
+		
+		orig=new int[width*height];
+		PixelGrabber grabber = new PixelGrabber(myImage, 0, 0, width, height, orig, 0, width);
+		try {
+			grabber.grabPixels();
+		}
+		catch(InterruptedException e2) {
+			System.out.println("error: " + e2);
+		}
+		
+		
+		origFloat = new float[width * height];
+		
+		for(int i = 0; i < width * height;  i++) {
+			
+			origFloat[i] = (float)orig[i];
+		}
+		
+		progressBar.setMaximum(width);
+
+		processing.setText("Processing...");
+
+		radiusSlider.setEnabled(false);
+		imSel.setEnabled(false);
+		highRadio.setEnabled(false);
+		lowRadio.setEnabled(false);
+		
+		timer.start();
+		new Thread(){
+			public void run(){
+				
+				fft = new FFT(orig, width, height);
+
+				fft.intermediate = FreqFilter.filter(fft.intermediate,
+lowpass,
+radius);
+				final Image foutput = createImage(new MemoryImageSource(width, height, fft.getPixels(), 0, width));
+
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						
+						TwoDArray output = inverse.transform(fft.intermediate);
+						
+						final Image invFourier = createImage(new MemoryImageSource(output.width, output.height, inverse.getPixels(output), 0, output.width));
+						
+				
+					}
+				});
+			}
+		}.start();
+	}
+
+}

@@ -1,0 +1,59 @@
+package org.hipi.examples;
+
+import java.awt.*;  
+import javax.swing.JFrame; 
+
+import java.awt.image.BufferedImage;
+
+import java.io.*;
+
+import javax.imageio.ImageIO;
+  
+public class HelloWorld extends Canvas{  
+      
+    public void paint(Graphics g) {  
+  
+        Toolkit t=Toolkit.getDefaultToolkit();  
+        Image img=t.getImage("/home/hgkumbhare/Desktop/inputdata/104001.jpg");  
+	
+	g.drawImage(img, 120,100,this);  
+
+	try{
+	BufferedImage image;
+	int width,height;
+	File input = new File("/home/hgkumbhare/Desktop/inputdata/104001.jpg");
+	image = ImageIO.read(input);
+         width = image.getWidth();
+         height = image.getHeight();
+         
+         for(int i=0; i<height; i++){
+         
+            for(int j=0; j<width; j++){
+            
+               Color c = new Color(image.getRGB(j, i));
+               int red = (int)(c.getRed() * 0.299);
+               int green = (int)(c.getGreen() * 0.587);
+               int blue = (int)(c.getBlue() *0.114);
+               Color newColor = new Color(red+green+blue,
+               
+               red+green+blue,red+green+blue);
+               
+               image.setRGB(j,i,newColor.getRGB());
+            }
+         }
+
+
+        g.drawImage(image, 120,100,this);  
+	}
+	catch (Exception e) {}
+          
+    }  
+        public static void main(String[] args) {  
+        HelloWorld m=new HelloWorld();  
+        JFrame f=new JFrame();  
+        f.add(m);  
+        f.setSize(400,400);  
+        f.setVisible(true);  
+    }  
+  
+}  

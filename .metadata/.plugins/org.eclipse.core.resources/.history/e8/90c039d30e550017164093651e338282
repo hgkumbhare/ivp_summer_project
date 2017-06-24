@@ -1,0 +1,38 @@
+package org.hipi.examples;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+
+public class FloatToBufferedImage {
+	
+	public static int main()
+	{
+		BufferedWriter q = new BufferedWriter (new FileWriter("/home/hgkumbhare/sample-rgb.txt",true));
+        
+		int h=0,w=0,temp;
+             q.write(String.valueOf(h));
+           q.write("\n");
+            q.write(String.valueOf(w));
+            q.write("\n");
+            q.write("3\n");   
+   
+             for (int j = 0; j < h; j++) {
+                   for (int i = 0; i < w; i++){
+                int[] valData;
+				temp=(int)(valData[(j*w + i)*3+0]*255);
+                   str = String.valueOf(temp);     
+                   q.write(String.valueOf(temp));
+                q.write(" ");
+                temp=(int)(valData[(j*w + i)*3+1]*255);   
+                    q.write(String.valueOf(temp));
+                q.write(" ");
+                temp=(int)(valData[(j*w + i)*3+2]*255);    
+                   q.write(String.valueOf(temp));
+                q.write(" ");
+              }
+              }
+            q.write("\n");
+           q.close();
+	}
+
+}

@@ -1,0 +1,86 @@
+package org.hipi.examples;
+
+//Link : http://users.ecs.soton.ac.uk/msn/book/new_demo/fourier/
+
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.awt.image.PixelGrabber;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class FourierAndInverseFourier {
+
+    PixelGrabber grabber = null;
+    static String fileName = "/home/hgkumbhare/Desktop/inputdata1/101200.jpg";
+
+    int imageNumber = 0;
+    static int progress = 0;
+    public static float origFloat[] = null;
+    public static FFT fft = new FFT();
+    public InverseFFT inverse = new InverseFFT();
+
+    static Image myImage = null;
+
+    static boolean lowpass = true;
+
+    public static void main(String[] args) throws Exception {
+	try {
+	    System.out.println("STARTED");
+	    BufferedImage myImage = ImageIO.read(new File(fileName));
+	    int width = 0, height = 0;
+	    width = myImage.getWidth(null);
+	    height = myImage.getHeight(null);
+
+	    int[] orig = new int[width * height];
+	    
+	    int k=0;
+	    for(int i=0;i<width;i++)
+	    {
+		for(int j=0;j<height;j++)
+		{
+		    
+		    int r=data[3*(i*height+j)];
+		    int g=data[3*(i*height+j)+1];
+		    int b=data[3*(i*height+j)+2];
+		    //int rgb=r<<16 | g<<8 | b; 
+		    
+		    int gray=r*0.2989+g*0.5870+b*0.1140;
+		    orig[k++]=gray;
+		    System.out.println(gray);
+		}
+	    }
+
+	    fft = new FFT(orig, width, height);
+
+	    fft.intermediate = FreqFilter
+		    .filter(fft.intermediate, lowpass, 500);
+
+	    BufferedImage newImage = new BufferedImage(width, height,
+		    BufferedImage.TYPE_BYTE_GRAY);
+	    int[] data = fft.getPixels();
+	    
+	    
+	    System.out.println(String.valueOf(width * height) + "  "
+		    + String.valueOf(data.length));
+
+	   newImage.setRGB(0, 0, width, height, data, 0, width);
+	   ImageIO.write(newImage, "jpg", new File(
+		    "/home/hgkumbhare/hogaya.jpg"));
+	} catch (Exception e) {
+	    System.out.print("NAHI HUA" + e);
+	}
+
+	// final Image foutput = createImage(new MemoryImageSource(width,
+	// height, fft.getPixels(), 0, width));
+
+	// TwoDArray output = inverse.transform(fft.intermediate);
+
+	// final Image invFourier = createImage(new
+	// MemoryImageSource(output.width, output.height,
+	// inverse.getPixels(output), 0, output.width));
+	// BufferedImage buffered = (BufferedImage) image;
+	System.out.println("DONE");
+    }
+
+}

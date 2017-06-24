@@ -1,0 +1,233 @@
+package org.hipi.examples;
+
+import java.io.IOException;
+import java.util.StringTokenizer;
+
+import org.hipi.image.FloatImage;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+
+import java.nio.*;
+
+import java.nio.channels.*;
+
+import java.io.*;
+
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import java.awt.image.DataBufferByte;
+
+import org.apache.hadoop.io.NullWritable;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
+
+import javax.imageio.ImageIO;
+
+
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
+
+
+public class Everything {
+
+	public static int index = 1;
+
+	public static float[] toFloatArray(byte[] byteArray) {
+		int times = Float.SIZE / Byte.SIZE;
+		float[] floats = new float[byteArray.length / times];
+		for (int i = 0; i < floats.length; i++) {
+			floats[i] = ByteBuffer.wrap(byteArray, i * times, times).getFloat();
+		}
+		return floats;
+	}
+
+	public static class TokenizerMapper extends
+			Mapper<Object, FloatImage, LongWritable, Text> {
+
+		private Graphics g;
+		private BufferedImage grayImage;
+
+		public void map(NullWritable key, FloatImage value, Context context)
+				throws IOException, InterruptedException {
+
+			// Mat mat = new
+			// Mat(value.getHeight(),value.getWidth(),org.bytedeco.javacpp.opencv_core.CV_8UC3);
+
+			float[] dataBuff = value.getData();
+
+			BufferedImage bufferedImage = new BufferedImage(value.getWidth(),
+					value.getHeight(), BufferedImage.TYPE_INT_RGB);
+			// bufferedImage.setRGB(0, 0, dataBuff);
+
+			for (int i = 0; i < value.getHeight(); i++) {
+
+				for (int j = 0; j < value.getWidth(); j++) {
+
+					int red = (int) (dataBuff[3 * i] * 0.299);
+					int green = (int) (dataBuff[3 * i + 1] * 0.587);
+					int blue = (int) (dataBuff[3 * i + 2] * 0.114);
+					Color newColor = new Color(red + green + blue, red + green
+							+ blue, red + green + blue);
+
+					bufferedImage.setRGB(j, i, newColor.getRGB());
+				}
+			}
+
+			int w = bufferedImage.getWidth(null);
+			int h = bufferedImage.getHeight(null);
+			BufferedImage bi = new BufferedImage(w, h,
+					BufferedImage.TYPE_INT_ARGB);
+			Graphics g = bi.getGraphics();
+			g.drawImage(bufferedImage, 0, 0, null);
+			// g.drawImage(bufferedImage, 120,100,null);
+
+			byte[] pixels = ((DataBufferByte) bufferedImage.getRaster()
+					.getDataBuffer()).getData();
+			FloatImage floatImage = new FloatImage(
+					bufferedImage.getWidth(null),
+					bufferedImage.getHeight(null), 1, toFloatArray(pixels));
+
+			context.write(new LongWritable(index), null);
+			// context.write(new LongWritable(index),new Text("DONE"));
+
+			/*
+			 * try (FileInputStream fis = new
+			 * FileInputStream("/home/hgkumbhare/Desktop/inputdata/100100.jpg"))
+			 * { BufferedImage colorImage = ImageIO.read(fis);
+			 * 
+			 * // BufferedImage colorImage = value.getImage();
+			 * 
+			 * if (colorImage != null) { grayImage = new
+			 * BufferedImage(colorImage.getWidth(), colorImage.getHeight(),
+			 * BufferedImage.TYPE_BYTE_GRAY); g = grayImage.getGraphics();
+			 * g.drawImage(colorImage, 0, 0, null); g.dispose();
+			 * BufferedImageWritable biw = new BufferedImageWritable(grayImage,
+			 * "harsada", "jpeg");
+			 * 
+			 * // context.write(new LongWritable(index), biw); context.write(new
+			 * LongWritable(index),value); index++; } } catch(Exception e) {}
+			 */
+		}
+	}
+
+	public static void main(String[] args) throws Exception {
+		Configuration conf = new Configuration();
+		Job job = Job.getInstance(conf, "word count");
+		job.setJarByClass(HelloWorld.class);
+		job.setMapperClass(TokenizerMapper.class);
+		// job.setCombinerClass(IntSumReducer.class);
+		// job.setReducerClass(IntSumReducer.class);
+		job.setOutputKeyClass(LongWritable.class);
+		job.setOutputValueClass(Text.class);
+		FileInputFormat.addInputPath(job, new Path(args[0]));
+		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+		System.exit(job.waitForCompletion(true) ? 0 : 1);
+
+	}
+
+	static abstract class ImageWritable<I> implements Writable {
+
+		protected I im;
+		protected String fileName;
+		protected String format;
+
+		public I getImage() {
+			return im;
+		}
+
+		public String getFormat() {
+			return format;
+		}
+
+		public void write(DataOutput out) throws IOException {
+			// Write image type
+			Text.writeString(out, format);
+			// Write image file name
+			Text.writeString(out, fileName);
+		}
+
+		public void readFields(DataInput in) throws IOException {
+			// Read image type
+			format = Text.readString(in);
+			// Read image file name
+			fileName = Text.readString(in);
+		}
+
+		public String getFileName() {
+			return fileName;
+		}
+
+		public void setFileName(String fName) {
+			fileName = fName;
+		}
+
+		public void setFormat(String fFormat) {
+			format = fFormat;
+		}
+
+		public void setImage(I bi) {
+			im = bi;
+		}
+	}
+
+	static class BufferedImageWritable extends ImageWritable<BufferedImage> {
+
+		public BufferedImageWritable() {
+
+		}
+
+		public BufferedImageWritable(BufferedImage _im) {
+			this();
+			im = _im;
+		}
+
+		public BufferedImageWritable(BufferedImage _im, String _filename,
+				String _format) {
+			this(_im);
+			fileName = _filename;
+			format = _format;
+		}
+
+		@Override
+		public void write(DataOutput out) throws IOException {
+			super.write(out);
+
+			// Write image
+			// Convert image to byte array
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			ImageIO.write(im, this.getFormat(), baos);
+			baos.flush();
+			byte[] bytes = baos.toByteArray();
+			baos.close();
+			// Write byte array size
+			out.writeInt(bytes.length);
+			// Write image bytes
+			out.write(bytes);
+		}
+
+		@Override
+		public void readFields(DataInput in) throws IOException {
+			super.readFields(in);
+
+			// Read image byte array size
+			int bArraySize = in.readInt();
+			// Read image byte array
+			byte[] bArray = new byte[bArraySize];
+			in.readFully(bArray);
+			// Read image from byte array
+			im = ImageIO.read(new ByteArrayInputStream(bArray));
+		}
+	}
+
+}

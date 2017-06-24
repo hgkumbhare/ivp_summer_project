@@ -1,0 +1,81 @@
+package org.hipi.examples;
+
+//Link : http://users.ecs.soton.ac.uk/msn/book/new_demo/fourier/
+
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.awt.image.MemoryImageSource;
+import java.awt.image.PixelGrabber;
+import java.io.File;
+
+import javax.imageio.ImageIO;
+
+public class FourierAndInverseFourier {
+
+    PixelGrabber grabber = null;
+    static String fileName = "/home/hgkumbhare/Desktop/inputdata1/101200.jpg";
+
+    int imageNumber = 0;
+    static int progress = 0;
+    public static float origFloat[] = null;
+    public static FFT fft = new FFT();
+    public InverseFFT inverse = new InverseFFT();
+
+    static Image myImage = null;
+
+    static boolean lowpass = true;
+
+    public static void main(String[] args) throws Exception {
+	try {
+	    System.out.println("STARTED");
+	    BufferedImage myImage = ImageIO.read(new File(fileName));
+	    int width = 0, height = 0;
+	    width = myImage.getWidth(null);
+	    height = myImage.getHeight(null);
+
+	    int[] orig = new int[width * height];
+	    
+	    int k=0;
+	    for(int i=0;i<width;i++)
+	    {
+		for(int j=0;j<height;j++)
+		{
+		    
+		    int pixel = myImage.getRGB(i, j);
+		        int red = (pixel >> 16) & 0xff;
+		        int green = (pixel >> 8) & 0xff;
+		        int blue = (pixel) & 0xff;
+		    
+		    int gray=Math.round(red*(float)0.2989+green* (float)0.5870+blue* (float)0.1140);
+		    orig[k++]=gray;
+		    //System.out.println(String.valueOf(gray));
+		}
+	    }
+
+	    fft = new FFT(orig, width, height);
+
+		fft.intermediate = FreqFilter.filter(fft.intermediate,lowpass,100);
+		//final Image foutput = createImage(new MemoryImageSource(width, height, fft.getPixels(), 0, width));
+		System.out.println(String.valueOf(String.valueOf(width*height)+"   "+fft.getPixels().length));
+
+	   BufferedImage newImage=new BufferedImage(width, height,BufferedImage.TYPE_INT_RGB);
+	newImage.setRGB(0, 0, width, height, fft.getPixels(), 0, width);
+	   ImageIO.write(newImage, "jpg", new File(
+		    "/home/hgkumbhare/hogaya.jpg"));
+	} catch (Exception e) {
+	    System.out.print("NAHI HUA" + e);
+	}
+
+	// final Image foutput = createImage(new MemoryImageSource(width,
+	// height, fft.getPixels(), 0, width));
+
+	// TwoDArray output = inverse.transform(fft.intermediate);
+
+	// final Image invFourier = createImage(new
+	// MemoryImageSource(output.width, output.height,
+	// inverse.getPixels(output), 0, output.width));
+	// BufferedImage buffered = (BufferedImage) image;
+	System.out.println("DONE");
+    }
+
+}

@@ -1,0 +1,130 @@
+package org.hipi.examples;
+
+import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+import org.hipi.image.FloatImage;
+import org.hipi.image.HipiImageHeader;
+import org.hipi.imagebundle.mapreduce.HibInputFormat;
+
+public class Sliding extends Configured implements Tool {
+
+	public static int index = 1;
+
+	public static class HelloWorldMapper extends
+			Mapper<HipiImageHeader, FloatImage, IntWritable, FloatImage> {
+		public void map(HipiImageHeader key, FloatImage value, Context context)
+				throws IOException, InterruptedException {
+			context.write(new IntWritable(index), value);
+			index++;
+		}
+	}
+
+	public static class HelloWorldReducer extends
+			Reducer<IntWritable, FloatImage, IntWritable, IntWritable> {
+		public void reduce(IntWritable key, Iterable<FloatImage> values,
+				Context context) throws IOException, InterruptedException {
+
+			for (FloatImage value : values) {
+				// Float Image to Buffered Image
+				// link : http://www.javamex.com/tutorials/graphics/bufferedimage_setrgb.shtml
+
+				float[] dataBuff = value.getData();
+
+				BufferedImage bufferedImage = new BufferedImage(
+						value.getWidth(), value.getHeight(),
+						BufferedImage.TYPE_INT_RGB);
+
+				for (int i = 0; i < value.getHeight(); i++) {
+					for (int j = 0; j < value.getWidth(); j++) {
+						int r = Math.round(dataBuff[3 * (i * value.getWidth() +j)] * (float)255.0); // red component 0...255
+						int g = Math.round(dataBuff[3 * (i * value.getWidth()+j) + 1] * (float)255.0); // green component 0...255
+						int b = Math.round(dataBuff[3 * (i * value.getWidth() +j) + 2] * (float)255.0); // blue component 0...255
+						//int a = // alpha (transparency) component 0...255
+						int val = (r << 16) | (g << 8) | b;
+						bufferedImage.setRGB(j, i, val);
+					}
+				}
+
+				ImageIO.write(image, "jpg", new File("/home/hduser/lalaoutput/",
+                        Integer.toString(index) + ".jpg"));
+
+				
+				context.write(new IntWritable(index), new IntWritable(index));
+				index++;
+			}
+		}
+	}
+
+	public int run(String[] args) throws Exception {
+		// Check input arguments
+		if (args.length != 2) {
+			System.out
+					.println("Usage: helloWorld <input HIB> <output directory>");
+			System.exit(0);
+		}
+
+		// Initialize and configure MapReduce job
+		Job job = Job.getInstance();
+		// Set input format class which parses the input HIB and spawns map
+		// tasks
+		job.setInputFormatClass(HibInputFormat.class);
+		// Set the driver, mapper, and reducer classes which express the
+		// computation
+		job.setJarByClass(HelloWorld.class);
+		job.setMapperClass(HelloWorldMapper.class);
+		job.setReducerClass(HelloWorldReducer.class);
+		// Set the types for the key/value pairs passed to/from map and reduce
+		// layers
+		job.setMapOutputKeyClass(IntWritable.class);
+		job.setMapOutputValueClass(FloatImage.class);
+		job.setOutputKeyClass(IntWritable.class);
+		job.setOutputValueClass(IntWritable.class);
+
+		// Set the input and output paths on the HDFS
+		FileInputFormat.setInputPaths(job, new Path(args[0]));
+		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+		// Execute the MapReduce job and block until it complets
+		boolean success = job.waitForCompletion(true);
+
+		// Return success or failure
+		return success ? 0 : 1;
+	}
+
+	public static void main(String[] args) throws Exception {
+		ToolRunner.run(new HelloWorld(), args);
+		System.exit(0);
+	}
+
+	public static float[] toFloatArray(byte[] byteArray) {
+		int times = Float.SIZE / Byte.SIZE;
+		float[] floats = new float[byteArray.length / times];
+		for (int i = 0; i < floats.length; i++) {
+			floats[i] = ByteBuffer.wrap(byteArray, i * times, times).getFloat();
+		}
+		return floats;
+	}
+
+	public static float[] intToFloatArray(int[] ints) {
+		float[] floats = new float[ints.length];
+		for(int i=0; i<ints.length; i++) {
+    			floats[i] = ints[i];
+		}
+		return floats;
+	}
+
+}

@@ -1,0 +1,229 @@
+package org.hipi.examples;
+
+import java.io.*;
+import java.io.File;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
+import java.awt.Color;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+
+import javax.imageio.ImageIO;
+import javax.swing.JFrame;
+
+import java.nio.*;
+
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+
+import org.hipi.image.FloatImage;
+import org.hipi.image.HipiImageHeader;
+import org.hipi.imagebundle.mapreduce.HibInputFormat;
+
+public class HelloWorld extends Configured implements Tool {
+
+	public static int index = 1;
+
+	public static class HelloWorldMapper extends Mapper<HipiImageHeader, FloatImage, IntWritable, FloatImage> 
+	{
+		public void map(HipiImageHeader key, FloatImage value, Context context) throws IOException, InterruptedException 
+		{
+			
+
+			float[] dataBuff = value.getData();
+
+			BufferedImage bufferedImage = new BufferedImage(value.getWidth(), value.getHeight(),BufferedImage.TYPE_INT_RGB);
+			
+			// Hipi gives input images in FloatImage format.
+			// Before processing these images we need to convert them into a format that allows us to perform basic image procesing.
+			// Convert FloatImage to BufferedImage.			
+			for (int i = 0; i < value.getHeight(); i++) 
+			{
+				for (int j = 0; j < value.getWidth(); j++) 
+				{
+					// red component of pixel
+					int r = Math.round(dataBuff[3 * (i * value.getWidth() +j)] * (float)255.0); 
+					// green component of pixel
+					int g = Math.round(dataBuff[3 * (i * value.getWidth()+j) + 1] * (float)255.0); 
+					// blue component of pixel
+					int b = Math.round(dataBuff[3 * (i * value.getWidth() +j) + 2] * (float)255.0); 
+					
+					//value of the Buffered Image pixel calculated from the rgb values of the FloatImage
+					int val = (r << 16) | (g << 8) | b;
+					bufferedImage.setRGB(j, i, val);
+				}
+			}
+
+
+			/*
+			 * The image processing code for processing images in 
+			 * BufferedImage format comes here
+			 */
+
+			//sample code for conversion to gray scale
+			// variable name is "bufferedImage". Now we can manipulate or do anything that we want to do.
+			
+			//RGB to GRAYSCALE conversion using image processing.			
+			
+			/*int width = bufferedImage.getWidth();
+			int height = bufferedImage.getHeight();
+			
+			for(int i=0; i<height; i++)
+			{
+				for(int j=0; j<width; j++)
+				{
+					Color c = new Color(bufferedImage.getRGB(j, i));
+					int red = (int)(c.getRed() * 0.299);
+					int green = (int)(c.getGreen() * 0.587);
+					int blue = (int)(c.getBlue() *0.114);
+					Color newColor = new Color(red+green+blue,red+green+blue,red+green+blue);
+					bufferedImage.setRGB(j,i,newColor.getRGB());
+				}
+			}
+			*/
+
+
+
+			// After all the processing has been done we can convert the BufferedImage back to FloatImage and write it to file.
+			// Buffered Image to Float Image						
+			int w = bufferedImage.getWidth();
+			int h = bufferedImage.getHeight();
+			int number_of_bands = 3;
+			// float array containing the rgb pixel values
+			float[] pixels= new float[w*h*number_of_bands];
+			int k=0;
+			for (int i = 0; i < h; i++) 
+			{
+				for (int j = 0; j < w; j++) 
+				{
+					int pixel = bufferedImage.getRGB(j, i);
+					// red component of pixel				        
+					int red = (pixel >> 16) & 0xff;
+					// green component of pixel
+					int green = (pixel >> 8) & 0xff;
+					// blue component of pixel
+					int blue = (pixel) & 0xff;
+					pixels[k++]=red;
+					pixels[k++]=green;
+					pixels[k++]=blue;
+				}
+			}
+			
+			FloatImage floatImage = new FloatImage(bufferedImage.getWidth(), bufferedImage.getHeight(), number_of_bands,pixels);
+
+			context.write(new IntWritable(index), value);
+			index++;
+		}
+	}
+
+	public static class HelloWorldReducer extends Reducer<IntWritable, FloatImage, IntWritable, IntWritable> 
+	{
+		public void reduce(IntWritable key, Iterable<FloatImage> values,Context context) throws IOException, InterruptedException 
+		{
+			int index = 1;
+			for (FloatImage value : values) 
+			{	
+				int width = value.getWidth();
+				int height = value.getHeight();
+				int number_of_bands = 3; //for now hardcoded
+				float[] dataBuff = value.getData();
+
+				// object to handle and manipulate the image data
+				BufferedImage image = new BufferedImage(width, height,BufferedImage.TYPE_INT_RGB);
+
+				for (int i = 0; i < height; ++i) 
+				{					
+					for (int j = 0; j < width; ++j) 
+					{
+						if (number_of_bands == 3) 
+						{							
+							int r= Math.round(dataBuff[3 * (i * value.getWidth() +j)] * (float)255.0);
+							int g= Math.round(dataBuff[3 * (i * value.getWidth()+j) + 1] * (float)255.0); 
+							int b= Math.round(dataBuff[3 * (i * value.getWidth() +j) + 2] * (float)255.0); 
+							int gray = r << 16 | g << 8 | b;
+							image.setRGB(j, i,gray);							
+						} 
+						else if (number_of_bands == 1) 
+						{							
+							int val = Math.round(dataBuff[(i * value.getWidth() +j)] * (float)255.0);
+							image.setRGB(j, i, val);
+						} 
+						else 
+						{
+							System.out.println("ERROR1");
+							throw new IllegalArgumentException("Invalid FloatImage");
+						}
+					}
+				}
+				// writing image in output directory given in jpeg format
+				
+				//output directory needs to be mentioned.
+				ImageIO.write(image, "jpg",new File("/home/hduser", Integer.toString(index) + ".jpg"));
+				context.write(new IntWritable(index), new IntWritable(index));
+				index++;
+			}
+		}
+	}
+
+	public int run(String[] args) throws Exception 
+	{
+		// Check input arguments
+		if (args.length != 2) 
+		{
+			System.out.println("Usage: helloWorld <input HIB> <output directory>");
+			System.exit(0);
+		}
+
+		// Initialize and configure MapReduce job
+		Job job = Job.getInstance();
+		// Set input format class which parses the input HIB and spawns map
+		// tasks
+		job.setInputFormatClass(HibInputFormat.class);
+		// Set the driver, mapper, and reducer classes which express the
+		// computation
+		job.setJarByClass(HelloWorld.class);
+		job.setMapperClass(HelloWorldMapper.class);
+		job.setReducerClass(HelloWorldReducer.class);
+		// Set the types for the key/value pairs passed to/from map and reduce
+		// layers
+		job.setMapOutputKeyClass(IntWritable.class);
+		job.setMapOutputValueClass(FloatImage.class);
+		job.setOutputKeyClass(IntWritable.class);
+		job.setOutputValueClass(IntWritable.class);
+
+		// Set the input and output paths on the HDFS
+		FileInputFormat.setInputPaths(job, new Path(args[0]));
+		FileOutputFormat.setOutputPath(job, new Path(args[1]));
+
+		// Execute the MapReduce job and block until it complets
+		boolean success = job.waitForCompletion(true);
+
+		// Return success or failure
+		return success ? 0 : 1;
+	}
+
+	public static void main(String[] args) throws Exception 
+	{
+		ToolRunner.run(new HelloWorld(), args);
+		System.exit(0);
+	}
+
+}
