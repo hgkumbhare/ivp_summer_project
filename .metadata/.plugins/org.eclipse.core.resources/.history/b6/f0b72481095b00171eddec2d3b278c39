@@ -1,0 +1,10 @@
+/**
+ * 
+ */
+/**
+ * @author hgkumbhare
+ *
+ *This package breaks a image into 4 parts
+ *using IntraFrameSplit
+ */
+package org.hipi.intraframe;

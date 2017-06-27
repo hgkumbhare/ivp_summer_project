@@ -1,0 +1,12 @@
+/**
+ * 
+ */
+/**
+ * @author hgkumbhare
+ *
+ *This package has three classes
+ *
+ *IntraFrameSplit.java
+ *breaks a image into 4 parts
+ */
+package org.hipi.intraframe;
