@@ -18,7 +18,9 @@ public class IntraFrameSplit {
 	String imagePath = args[0];
 	String outputPath = args[1];
 	int nodes = Integer.valueOf(args[2]);
+	// arg 3 is filter size
 	int borderSize = Integer.valueOf(args[3]) / 2;
+	borderSize=100;
 
 	BufferedImage image = null;
 	File f = null;
@@ -33,7 +35,22 @@ public class IntraFrameSplit {
 
 	    // Add border to image
 	    BufferedImage image1 = addborder(image, borderSize);
-
+	    
+	    // here here
+	    int m=2,k=1;
+	    int wd=width/m + 2*borderSize ,ht=height/m + 2*borderSize;
+	    for(int y=0;y<height;y+=height/m )
+	    {
+		for(int x=0;x<width;x+=width/m)
+		{
+		    BufferedImage subImage;
+		    f = new File(outputPath + "/" + String.valueOf(k++) + ".jpg");
+		    subImage = image1.getSubimage(x, y, wd,ht);
+		    ImageIO.write(subImage, "jpg", f);
+		}
+	    }
+	    
+	    /*
 	    // To write image with borders
 	    f = new File(outputPath + "/" + String.valueOf(nodes + 1) + ".jpg");
 	    ImageIO.write(image1, "jpg", f);
@@ -58,6 +75,8 @@ public class IntraFrameSplit {
 	    subImage = image1.getSubimage(width / 2, (height / 2), width / 2
 		    + borderSize * 2, height / 2 + borderSize * 2);
 	    ImageIO.write(subImage, "jpg", f);
+	    
+	    */
 
 	    System.out.println("Writing complete.");
 	} catch (IOException e) {

@@ -1,0 +1,120 @@
+package org.hipi.intraframe;
+
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
+
+public class IntraframeMerge {
+
+    public static void main(String args[]) throws IOException {
+
+	if (args.length != 4) {
+	    System.out
+		    .println("Usage: InputPath imageOutput Number of nodes filterSize");
+	    System.exit(0);
+	}
+	String inputPath = args[0];
+	String imageOutput = args[1];
+	int nodes = Integer.valueOf(args[2]);
+	int borderSize = Integer.valueOf(args[3]) / 2;
+	File f = null;
+
+	// read image
+	try {
+	    
+	    // here here
+	    
+	    // input 1 image
+	    int k=1;
+	    f = new File(inputPath + "/" + String.valueOf(k++) + ".jpg");
+	    BufferedImage image1 = ImageIO.read(f);
+	    
+	    // Final Image to be output - image
+	    int width = image1.getWidth();
+	    int height = image1.getHeight();
+	    BufferedImage image = new BufferedImage(
+		    (image1.getWidth() - borderSize * 2) * 2,
+		    (image1.getHeight() - borderSize * 2) * 2,
+		    BufferedImage.TYPE_INT_RGB);
+	    
+	    int m=4;
+	    int wd=(width-2*borderSize) ,ht=(height-2*borderSize);
+	    for(int y=0;y<ht*m;y+=ht )
+	    {
+		for(int x=0;x<wd*m;x+=wd)
+		{
+		    // Final Image to be output - image
+		    int[] pixels = image1.getRGB(borderSize+x, borderSize+y,
+			    wd, ht, null, 0, image1.getWidth());
+		    image.setRGB(y, x, wd,ht, pixels, 0,
+			    image1.getWidth());
+		    
+		    // input next image
+		    f = new File(inputPath + "/" + String.valueOf(k++) + ".jpg");
+		    image1 = ImageIO.read(f);
+		}
+	    }
+	    
+	    /*
+	    // To read image with borders
+	    // For Image 1
+	    f = new File(inputPath + "/" + String.valueOf(1) + ".jpg");
+	    BufferedImage image1 = ImageIO.read(f);
+	    // Final Image to be output - image
+	    int width = image1.getWidth();
+	    int height = image1.getHeight();
+	    BufferedImage image = new BufferedImage(
+		    (image1.getWidth() - borderSize * 2) * 2,
+		    (image1.getHeight() - borderSize * 2) * 2,
+		    BufferedImage.TYPE_INT_RGB);
+	    int[] pixels = image1.getRGB(borderSize, borderSize,
+		    image1.getWidth() - borderSize * 2, image1.getHeight()
+			    - borderSize * 2, null, 0, image1.getWidth());
+	    image.setRGB(0, 0, image1.getWidth() - 2 * borderSize,
+		    image1.getHeight() - 2 * borderSize, pixels, 0,
+		    image1.getWidth());
+
+	    // For Image 2
+	    f = new File(inputPath + "/" + String.valueOf(2) + ".jpg");
+	    BufferedImage image2 = ImageIO.read(f);
+	    pixels = image2.getRGB(borderSize, borderSize, image1.getWidth()
+		    - borderSize * 2, image1.getHeight() - borderSize * 2,
+		    null, 0, image1.getWidth());
+	    image.setRGB(width - borderSize * 2, 0, image1.getWidth() - 2
+		    * borderSize, image1.getHeight() - 2 * borderSize, pixels,
+		    0, image1.getWidth());
+
+	    // For Image 3
+	    f = new File(inputPath + "/" + String.valueOf(3) + ".jpg");
+	    BufferedImage image3 = ImageIO.read(f);
+	    pixels = image3.getRGB(borderSize, borderSize, image1.getWidth()
+		    - borderSize * 2, image1.getHeight() - borderSize * 2,
+		    null, 0, image1.getWidth());
+	    image.setRGB(0, height - borderSize * 2, image1.getWidth() - 2
+		    * borderSize, image1.getHeight() - 2 * borderSize, pixels,
+		    0, image1.getWidth());
+
+	    // For Image 4
+	    f = new File(inputPath + "/" + String.valueOf(4) + ".jpg");
+	    BufferedImage image4 = ImageIO.read(f);
+	    pixels = image4.getRGB(borderSize, borderSize, image1.getWidth()
+		    - borderSize * 2, image1.getHeight() - borderSize * 2,
+		    null, 0, image1.getWidth());
+	    image.setRGB(width - borderSize * 2, height - borderSize * 2,
+		    image1.getWidth() - 2 * borderSize, image1.getHeight() - 2
+			    * borderSize, pixels, 0, image1.getWidth());
+	    System.out.println("Reading complete.");
+	    */
+	    
+	    f = new File(imageOutput);
+	    ImageIO.write(image, "jpg", f);
+
+	    System.out.println("Writing complete.");
+	} catch (IOException e) {
+	    System.out.println("Error: " + e);
+	}
+
+    }
+}
